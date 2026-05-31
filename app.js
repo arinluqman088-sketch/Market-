@@ -274,24 +274,107 @@ function customersHtml(){
       <label>ژمارەی مۆبایل</label><input id="cPhone">
       <button class="green" style="margin-top:12px" onclick="addCustomer()">زیادکردن</button>
     </div>
+
     <div class="card">
       <h2>قەرزەکان</h2>
-      <div class="tablewrap"><table>
-        <thead><tr><th>ناو</th><th>مۆبایل</th><th>قەرز</th><th></th></tr></thead>
-        <tbody>${data.customers.map(c=>`<tr><td>${c.name}</td><td>${c.phone||""}</td><td>${money(c.debt||0)}</td><td><button class="green" onclick="payDebt('${c.id}')">پارەدان</button></td></tr>`).join("")}</tbody>
-      </table></div>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th>ناو</th>
+              <th>مۆبایل</th>
+              <th>قەرز</th>
+              <th>پارەدان</th>
+              <th>Delete</th>
+            </tr>
+          </thead>
+
+          <tbody>
+          ${data.customers.map(c=>`
+            <tr>
+              <td>${c.name}</td>
+              <td>${c.phone || ""}</td>
+              <td>
+                <input 
+                  type="number"
+                  value="${c.debt || 0}"
+                  onchange="updateDebt('${c.id}', this.value)"
+                  style="width:100px"
+                >
+              </td>
+
+              <td>
+                <button class="green"
+                onclick="payDebt('${c.id}')">
+                پارەدان
+                </button>
+              </td>
+
+              <td>
+                <button class="red"
+                onclick="deleteCustomer('${c.id}')">
+                Delete
+                </button>
+              </td>
+            </tr>
+          `).join("")}
+          </tbody>
+
+        </table>
+      </div>
     </div>
   </div>`;
 }
+
 function addCustomer(){
-  const name=byId("cName").value.trim(); if(!name) return alert("ناو بنووسە");
-  data.customers.unshift({id:crypto.randomUUID(), name, phone:byId("cPhone").value.trim(), debt:0});
-  save(); render();
+  const name = byId("cName").value.trim();
+  if(!name) return alert("ناو بنووسە");
+
+  data.customers.unshift({
+    id: crypto.randomUUID(),
+    name,
+    phone: byId("cPhone").value.trim(),
+    debt:0
+  });
+
+  save();
+  render();
 }
+
+function updateDebt(id,value){
+  const c=data.customers.find(x=>x.id===id);
+  if(!c) return;
+
+  c.debt = Number(value || 0);
+
+  save();
+}
+
+function deleteCustomer(id){
+  if(!confirm("دڵنیایت؟")) return;
+
+  data.customers =
+  data.customers.filter(x=>x.id!==id);
+
+  save();
+  render();
+}
+
 function payDebt(id){
   const c=data.customers.find(x=>x.id===id);
-  const amount=Number(prompt("بڕی پارەدان:", c.debt)||0);
-  if(amount>0){ c.debt=Math.max(0, Number(c.debt||0)-amount); save(); render(); }
+
+  const amount=
+  Number(prompt("بڕی پارەدان:", c.debt)||0);
+
+  if(amount>0){
+    c.debt=Math.max(
+      0,
+      Number(c.debt||0)-amount
+    );
+
+    save();
+    render();
+  }
 }
 
 function reportsHtml(){
