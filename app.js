@@ -1,5 +1,6 @@
-const ACCOUNTS_LS = "AR_GROUP_POS_ACCOUNTS_V2";
-const DATA_PREFIX = "AR_GROUP_POS_DATA_V6_";
+const ACCOUNTS_LS = "AR_GROUP_POS_ACCOUNTS_V3";
+const DATA_PREFIX = "AR_GROUP_POS_DATA_V7_";
+
 const defaultAccounts = [
   {
     key: "market1",
@@ -60,24 +61,8 @@ let state = {
 };
 
 function loadAccounts(){
-  const raw = localStorage.getItem(ACCOUNTS_LS);
-
-  if(!raw){
-    localStorage.setItem(ACCOUNTS_LS, JSON.stringify(defaultAccounts));
-    return clone(defaultAccounts);
-  }
-
-  try{
-    const parsed = JSON.parse(raw);
-    if(!Array.isArray(parsed) || parsed.length < 2){
-      localStorage.setItem(ACCOUNTS_LS, JSON.stringify(defaultAccounts));
-      return clone(defaultAccounts);
-    }
-    return parsed;
-  }catch{
-    localStorage.setItem(ACCOUNTS_LS, JSON.stringify(defaultAccounts));
-    return clone(defaultAccounts);
-  }
+  localStorage.setItem(ACCOUNTS_LS, JSON.stringify(defaultAccounts));
+  return clone(defaultAccounts);
 }
 
 function saveAccounts(){
@@ -213,23 +198,27 @@ function go(p){
 }
 
 function login(){
-  const u = byId("loginUser").value.trim();
-  const p = byId("loginPass").value;
+  const u = byId("loginUser").value.trim().toLowerCase();
+  const p = byId("loginPass").value.trim();
 
-  const found = accounts.find(acc => acc.username === u && acc.password === p);
+  const found = defaultAccounts.find(acc =>
+    acc.username.toLowerCase() === u &&
+    acc.password === p
+  );
 
   if(!found){
     showMsg("Username یان Password هەڵەیە");
     return;
   }
 
-  currentAccount = found;
+  currentAccount = clone(found);
   data = loadData();
 
   data.user.username = currentAccount.username;
   data.user.password = currentAccount.password;
   data.user.shopName = currentAccount.shopName;
   data.user.phone = currentAccount.phone;
+
   save();
 
   state.logged = true;
@@ -923,9 +912,6 @@ function settingsHtml(){
         <label>مۆبایل</label>
         <input id="shopPhone" value="${data.user.phone}">
 
-        <label>Username</label>
-        <input id="newUser" value="${currentAccount.username}">
-
         <label>Password نوێ</label>
         <input id="newPass" type="password" placeholder="بەتاڵی بهێڵە ئەگەر ناگۆڕیت">
 
@@ -941,7 +927,7 @@ function settingsHtml(){
           <input id="importFile" type="file" accept=".json" class="hidden" onchange="importBackup(event)">
         </div>
 
-        <p class="muted">Backup تەنها بۆ ئەم مارکێتەیە، مارکێتی تر کاری پێ ناکرێت.</p>
+        <p class="muted">Backup تەنها بۆ ئەم مارکێتەیە.</p>
         <button class="red" onclick="resetThisMarket()">Reset ئەم مارکێتە</button>
       </div>
     </div>
@@ -949,20 +935,12 @@ function settingsHtml(){
 }
 
 function saveSettings(){
-  const newShopName = byId("shopName").value.trim() || "AR Group POS";
+  const newShopName = byId("shopName").value.trim() || currentAccount.shopName;
   const newPhone = byId("shopPhone").value.trim();
-  const newUsername = byId("newUser").value.trim() || currentAccount.username;
-  const newPassword = byId("newPass").value;
-
-  const duplicated = accounts.find(acc => acc.username === newUsername && acc.key !== currentAccount.key);
-  if(duplicated){
-    showMsg("ئەم Username ـە پێشتر بۆ مارکێتێکی تر بەکارهاتووە");
-    return;
-  }
+  const newPassword = byId("newPass").value.trim();
 
   currentAccount.shopName = newShopName;
   currentAccount.phone = newPhone;
-  currentAccount.username = newUsername;
 
   if(newPassword){
     currentAccount.password = newPassword;
@@ -973,9 +951,7 @@ function saveSettings(){
   data.user.username = currentAccount.username;
   data.user.password = currentAccount.password;
 
-  saveAccounts();
   save();
-
   showMsg("ڕێکخستنەکان هەڵگیران");
   render();
 }
