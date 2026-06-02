@@ -1,4 +1,4 @@
-const LS = "MARKET_POS_PRO_DATA_V2";
+const LS = "MARKET_POS_PRO_DATA_V4";
 
 function uid(){
   if(window.crypto && typeof window.crypto.randomUUID === "function"){
@@ -16,7 +16,7 @@ const defaultData = {
   user: {
     username: "admin",
     password: "1234",
-    shopName: "Market POS Pro",
+    shopName: "AR Group POS",
     phone: "0770 000 0000"
   },
   products: [
@@ -30,17 +30,10 @@ const defaultData = {
 };
 
 let data = loadData();
-
-let state = {
-  page: "dashboard",
-  cart: [],
-  logged: false,
-  editingProduct: null
-};
+let state = { page: "dashboard", cart: [], logged: false, editingProduct: null };
 
 function loadData(){
   const raw = localStorage.getItem(LS);
-
   if(!raw){
     localStorage.setItem(LS, JSON.stringify(defaultData));
     return clone(defaultData);
@@ -59,29 +52,12 @@ function loadData(){
   }
 }
 
-function save(){
-  localStorage.setItem(LS, JSON.stringify(data));
-}
-
-function byId(id){
-  return document.getElementById(id);
-}
-
-function money(n){
-  return Number(n || 0).toLocaleString() + " IQD";
-}
-
-function today(){
-  return new Date().toISOString().slice(0, 10);
-}
-
-function month(){
-  return new Date().toISOString().slice(0, 7);
-}
-
-function showMsg(text){
-  alert(text);
-}
+function save(){ localStorage.setItem(LS, JSON.stringify(data)); }
+function byId(id){ return document.getElementById(id); }
+function money(n){ return Number(n || 0).toLocaleString() + " IQD"; }
+function today(){ return new Date().toISOString().slice(0, 10); }
+function month(){ return new Date().toISOString().slice(0, 7); }
+function showMsg(text){ alert(text); }
 
 function render(){
   const app = byId("app");
@@ -132,9 +108,7 @@ function render(){
           ${nav("settings","⚙️ ڕێکخستن")}
         </div>
 
-        <div class="content">
-          ${pageHtml()}
-        </div>
+        <div class="content">${pageHtml()}</div>
       </div>
     </div>
 
@@ -144,7 +118,7 @@ function render(){
   afterRender();
 }
 
-function nav(p, t){
+function nav(p,t){
   return `<button class="navbtn ${state.page === p ? "active" : ""}" onclick="go('${p}')">${t}</button>`;
 }
 
@@ -199,25 +173,10 @@ function dashboardHtml(){
     </div>
 
     <div class="grid four">
-      <div class="card stat">
-        <div class="muted">فرۆشتنی ئەمڕۆ</div>
-        <div class="kpi">${money(totalToday)}</div>
-      </div>
-
-      <div class="card stat">
-        <div class="muted">فرۆشتنی مانگ</div>
-        <div class="kpi">${money(totalMonth)}</div>
-      </div>
-
-      <div class="card stat">
-        <div class="muted">ژمارەی کاڵاکان</div>
-        <div class="kpi">${data.products.length}</div>
-      </div>
-
-      <div class="card stat">
-        <div class="muted">قەرزی کڕیاران</div>
-        <div class="kpi">${money(debtTotal)}</div>
-      </div>
+      <div class="card stat"><div class="muted">فرۆشتنی ئەمڕۆ</div><div class="kpi">${money(totalToday)}</div></div>
+      <div class="card stat"><div class="muted">فرۆشتنی مانگ</div><div class="kpi">${money(totalMonth)}</div></div>
+      <div class="card stat"><div class="muted">ژمارەی کاڵاکان</div><div class="kpi">${data.products.length}</div></div>
+      <div class="card stat"><div class="muted">قەرزی کڕیاران</div><div class="kpi">${money(debtTotal)}</div></div>
     </div>
 
     <div class="grid two" style="margin-top:14px">
@@ -225,13 +184,7 @@ function dashboardHtml(){
         <h2>کاڵای کەم لە ستۆک</h2>
         <div class="tablewrap">
           <table>
-            <thead>
-              <tr>
-                <th>کاڵا</th>
-                <th>ستۆک</th>
-                <th>ئاگاداری</th>
-              </tr>
-            </thead>
+            <thead><tr><th>کاڵا</th><th>ستۆک</th><th>ئاگاداری</th></tr></thead>
             <tbody>
               ${
                 data.products
@@ -267,29 +220,30 @@ function posHtml(){
         <h2>فرۆشتن / POS</h2>
 
         <div class="row">
-          <input id="scanInput" placeholder="بارکۆد یان ناوی کاڵا بنووسە">
+          <div class="searchBox">
+            <input
+              id="scanInput"
+              placeholder="بارکۆد یان ناوی کاڵا بنووسە"
+              autocomplete="off"
+              onfocus="showScanOptions()"
+              oninput="showScanOptions()"
+              onkeydown="if(event.key==='Enter'){ addScan(); }"
+            >
+            <div id="scanOptions" class="scan-options hidden"></div>
+          </div>
+
           <button onclick="addScan()">زیادکردن</button>
         </div>
 
         <div class="tablewrap" style="margin-top:12px">
           <table>
-            <thead>
-              <tr>
-                <th>کاڵا</th>
-                <th>دانە</th>
-                <th>نرخ</th>
-                <th>کۆ</th>
-                <th></th>
-              </tr>
-            </thead>
+            <thead><tr><th>کاڵا</th><th>دانە</th><th>نرخ</th><th>کۆ</th><th></th></tr></thead>
             <tbody>
               ${
                 state.cart.map((i,idx) => `
                   <tr>
                     <td>${i.name}</td>
-                    <td>
-                      <input style="width:80px" type="number" value="${i.qty}" min="1" onchange="setQty(${idx}, this.value)">
-                    </td>
+                    <td><input style="width:80px" type="number" value="${i.qty}" min="1" onchange="setQty(${idx}, this.value)"></td>
                     <td>${money(i.price)}</td>
                     <td>${money(i.qty * i.price)}</td>
                     <td><button class="red" onclick="removeCart(${idx})">X</button></td>
@@ -342,18 +296,69 @@ function afterRender(){
   }
 }
 
-function addScan(){
+document.addEventListener("click", function(e){
+  const box = byId("scanOptions");
   const input = byId("scanInput");
+
+  if(box && input && !input.contains(e.target) && !box.contains(e.target)){
+    box.classList.add("hidden");
+  }
+});
+
+function showScanOptions(){
+  const input = byId("scanInput");
+  const box = byId("scanOptions");
+  if(!input || !box) return;
+
   const q = input.value.trim().toLowerCase();
 
-  if(!q) return;
-
-  const p = data.products.find(x =>
-    String(x.barcode).toLowerCase() === q ||
-    String(x.name).toLowerCase().includes(q)
+  let list = data.products.filter(p =>
+    String(p.name).toLowerCase().includes(q) ||
+    String(p.barcode).toLowerCase().includes(q) ||
+    String(p.category || "").toLowerCase().includes(q)
   );
 
-  if(!p) return showMsg("کاڵا نەدۆزرایەوە");
+  if(!q){
+    list = data.products;
+  }
+
+  list = list.slice(0, 15);
+
+  if(!list.length){
+    box.innerHTML = `<div class="scan-option muted">هیچ کاڵایەک نەدۆزرایەوە</div>`;
+    box.classList.remove("hidden");
+    return;
+  }
+
+  box.innerHTML = list.map(p => `
+    <div class="scan-option" onclick="selectScanProduct('${p.id}')">
+      <div>
+        <b>${p.name}</b>
+        <small>${p.barcode} - ${p.category || "بێ جۆر"} - ستۆک: ${p.stock}</small>
+      </div>
+      <span>${money(p.price)}</span>
+    </div>
+  `).join("");
+
+  box.classList.remove("hidden");
+}
+
+function selectScanProduct(id){
+  const p = data.products.find(x => x.id === id);
+  if(!p) return;
+
+  addProductToCart(p);
+
+  const input = byId("scanInput");
+  const box = byId("scanOptions");
+
+  if(input) input.value = "";
+  if(box) box.classList.add("hidden");
+
+  render();
+}
+
+function addProductToCart(p){
   if(Number(p.stock) <= 0) return showMsg("ئەم کاڵایە لە ستۆکدا نەماوە");
 
   const item = state.cart.find(x => x.id === p.id);
@@ -370,6 +375,25 @@ function addScan(){
       qty: 1
     });
   }
+}
+
+function addScan(){
+  const input = byId("scanInput");
+  const q = input.value.trim().toLowerCase();
+
+  if(!q){
+    showScanOptions();
+    return;
+  }
+
+  const p = data.products.find(x =>
+    String(x.barcode).toLowerCase() === q ||
+    String(x.name).toLowerCase().includes(q)
+  );
+
+  if(!p) return showMsg("کاڵا نەدۆزرایەوە");
+
+  addProductToCart(p);
 
   input.value = "";
   render();
@@ -405,10 +429,7 @@ function clearCart(){
 function toggleCustomer(){
   const box = byId("customerBox");
   const pay = byId("payType");
-
-  if(box && pay){
-    box.classList.toggle("hidden", pay.value !== "debt");
-  }
+  if(box && pay) box.classList.toggle("hidden", pay.value !== "debt");
 }
 
 function checkout(){
@@ -448,9 +469,7 @@ function checkout(){
 
   data.sales.unshift(sale);
   save();
-
   printReceipt(sale);
-
   state.cart = [];
   render();
 }
@@ -558,11 +577,7 @@ function renderProductsTable(){
         <td>${p.name}</td>
         <td>${p.category || ""}</td>
         <td>${money(p.price)}</td>
-        <td>
-          <span class="badge ${Number(p.stock) <= Number(p.minStock) ? "low" : ""}">
-            ${p.stock}
-          </span>
-        </td>
+        <td><span class="badge ${Number(p.stock) <= Number(p.minStock) ? "low" : ""}">${p.stock}</span></td>
         <td>
           <button class="blue" onclick="editProduct('${p.id}')">Edit</button>
           <button class="red" onclick="deleteProduct('${p.id}')">Delete</button>
@@ -645,7 +660,6 @@ function editProduct(id){
 
 function deleteProduct(id){
   if(!confirm("دڵنیایت دەتەوێت ئەم کاڵایە بسڕیتەوە؟")) return;
-
   data.products = data.products.filter(x => x.id !== id);
   save();
   render();
@@ -692,19 +706,10 @@ function customersHtml(){
                     <td>${c.name}</td>
                     <td>${c.phone || ""}</td>
                     <td>
-                      <input
-                        type="number"
-                        value="${c.debt || 0}"
-                        onchange="updateDebt('${c.id}', this.value)"
-                        style="width:110px"
-                      >
+                      <input type="number" value="${c.debt || 0}" onchange="updateDebt('${c.id}', this.value)" style="width:110px">
                     </td>
-                    <td>
-                      <button class="green" onclick="payDebt('${c.id}')">پارەدان</button>
-                    </td>
-                    <td>
-                      <button class="red" onclick="deleteCustomer('${c.id}')">Delete</button>
-                    </td>
+                    <td><button class="green" onclick="payDebt('${c.id}')">پارەدان</button></td>
+                    <td><button class="red" onclick="deleteCustomer('${c.id}')">Delete</button></td>
                   </tr>
                 `).join("") || `<tr><td colspan="5" class="muted">هیچ کڕیارێک نییە</td></tr>`
               }
@@ -718,7 +723,6 @@ function customersHtml(){
 
 function addCustomer(){
   const name = byId("cName").value.trim();
-
   if(!name) return showMsg("ناو بنووسە");
 
   data.customers.unshift({
@@ -736,14 +740,12 @@ function addCustomer(){
 function updateDebt(id, value){
   const c = data.customers.find(x => x.id === id);
   if(!c) return;
-
   c.debt = Number(value || 0);
   save();
 }
 
 function deleteCustomer(id){
   if(!confirm("دڵنیایت دەتەوێت ئەم کڕیارە بسڕیتەوە؟")) return;
-
   data.customers = data.customers.filter(x => x.id !== id);
   save();
   render();
@@ -778,34 +780,16 @@ function reportsHtml(){
 
   return `
     <div class="grid three">
-      <div class="card stat">
-        <div class="muted">فرۆشتنی ئەمڕۆ</div>
-        <div class="kpi">${money(totalDay)}</div>
-      </div>
-
-      <div class="card stat">
-        <div class="muted">قازانجی ئەمڕۆ</div>
-        <div class="kpi">${money(profitDay)}</div>
-      </div>
-
-      <div class="card stat">
-        <div class="muted">فرۆشتنی مانگ</div>
-        <div class="kpi">${money(totalMonth)}</div>
-      </div>
+      <div class="card stat"><div class="muted">فرۆشتنی ئەمڕۆ</div><div class="kpi">${money(totalDay)}</div></div>
+      <div class="card stat"><div class="muted">قازانجی ئەمڕۆ</div><div class="kpi">${money(profitDay)}</div></div>
+      <div class="card stat"><div class="muted">فرۆشتنی مانگ</div><div class="kpi">${money(totalMonth)}</div></div>
     </div>
 
     <div class="card" style="margin-top:14px">
       <h2>دوایین فرۆشتنەکان</h2>
       <div class="tablewrap">
         <table>
-          <thead>
-            <tr>
-              <th>ژمارە</th>
-              <th>کات</th>
-              <th>جۆر</th>
-              <th>کۆ</th>
-            </tr>
-          </thead>
+          <thead><tr><th>ژمارە</th><th>کات</th><th>جۆر</th><th>کۆ</th></tr></thead>
           <tbody>
             ${
               data.sales.slice(0,100).map(s => `
@@ -862,7 +846,7 @@ function settingsHtml(){
 }
 
 function saveSettings(){
-  data.user.shopName = byId("shopName").value.trim() || "Market POS Pro";
+  data.user.shopName = byId("shopName").value.trim() || "AR Group POS";
   data.user.phone = byId("shopPhone").value.trim();
   data.user.username = byId("newUser").value.trim() || "admin";
 
