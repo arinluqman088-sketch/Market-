@@ -30,6 +30,7 @@ const defaultData = {
 };
 
 let data = loadData();
+
 let state = {
   page: "dashboard",
   cart: [],
@@ -45,14 +46,14 @@ function loadData(){
     return clone(defaultData);
   }
 
-  try {
+  try{
     const parsed = JSON.parse(raw);
+    parsed.user = parsed.user || defaultData.user;
     parsed.products = parsed.products || [];
     parsed.customers = parsed.customers || [];
     parsed.sales = parsed.sales || [];
-    parsed.user = parsed.user || defaultData.user;
     return parsed;
-  } catch {
+  }catch{
     localStorage.setItem(LS, JSON.stringify(defaultData));
     return clone(defaultData);
   }
@@ -90,20 +91,17 @@ function render(){
       <div class="login-page">
         <div class="login card">
           <div class="logo-box">🛒</div>
-          <h1>Market POS Pro</h1>
+
+          <h1>پەرەی پێدراوە لە لایەن گروپی AR group</h1>
           <p class="muted">سیستەمی کاشێری مارکێت و دوکان</p>
 
           <label>Username</label>
-          <input id="loginUser" value="admin">
+          <input id="loginUser" value="admin" autocomplete="username">
 
           <label>Password</label>
-          <input id="loginPass" type="password" value="1234">
+          <input id="loginPass" type="password" value="" placeholder="Password" autocomplete="current-password">
 
           <button onclick="login()" style="margin-top:14px">Login</button>
-
-          <div class="login-info">
-            Username: <b>admin</b> | Password: <b>1234</b>
-          </div>
         </div>
       </div>
     `;
@@ -115,7 +113,7 @@ function render(){
       <div class="topbar">
         <div>
           <div class="brand">🛒 ${data.user.shopName}</div>
-          <div class="muted small">Premium POS System</div>
+          <div class="muted small">Powered by AR Group</div>
         </div>
 
         <div class="actions">
@@ -163,7 +161,7 @@ function login(){
   if(u === data.user.username && p === data.user.password){
     state.logged = true;
     render();
-  } else {
+  }else{
     showMsg("Username یان Password هەڵەیە");
   }
 }
@@ -228,19 +226,23 @@ function dashboardHtml(){
         <div class="tablewrap">
           <table>
             <thead>
-              <tr><th>کاڵا</th><th>ستۆک</th><th>ئاگاداری</th></tr>
+              <tr>
+                <th>کاڵا</th>
+                <th>ستۆک</th>
+                <th>ئاگاداری</th>
+              </tr>
             </thead>
             <tbody>
               ${
                 data.products
-                  .filter(p => Number(p.stock) <= Number(p.minStock))
-                  .map(p => `
-                    <tr>
-                      <td>${p.name}</td>
-                      <td><span class="badge low">${p.stock}</span></td>
-                      <td>${p.minStock}</td>
-                    </tr>
-                  `).join("") || `<tr><td colspan="3" class="muted">هیچ کاڵایەک کەم نییە</td></tr>`
+                .filter(p => Number(p.stock) <= Number(p.minStock))
+                .map(p => `
+                  <tr>
+                    <td>${p.name}</td>
+                    <td><span class="badge low">${p.stock}</span></td>
+                    <td>${p.minStock}</td>
+                  </tr>
+                `).join("") || `<tr><td colspan="3" class="muted">هیچ کاڵایەک کەم نییە</td></tr>`
               }
             </tbody>
           </table>
@@ -359,7 +361,7 @@ function addScan(){
   if(item){
     if(item.qty + 1 > Number(p.stock)) return showMsg("ستۆک بەس نییە");
     item.qty++;
-  } else {
+  }else{
     state.cart.push({
       id: p.id,
       name: p.name,
@@ -455,6 +457,7 @@ function checkout(){
 
 function printReceipt(sale){
   const shop = data.user.shopName;
+
   const lines = sale.items.map(i => `
     <tr>
       <td>${i.name}</td>
@@ -614,7 +617,7 @@ function saveProduct(){
   if(idx >= 0){
     data.products[idx] = p;
     showMsg("کاڵاکە نوێکرایەوە");
-  } else {
+  }else{
     data.products.unshift(p);
     showMsg("کاڵاکە بە سەرکەوتوویی زیاد کرا");
   }
@@ -764,11 +767,13 @@ function reportsHtml(){
   const monthSales = data.sales.filter(s => s.date.slice(0,7) === month());
 
   const totalDay = daySales.reduce((s,x) => s + Number(x.total || 0), 0);
+
   const profitDay = daySales.reduce((s,x) =>
     s + x.items.reduce((a,i) =>
       a + (Number(i.price || 0) - Number(i.cost || 0)) * Number(i.qty || 0), 0
     ) - Number(x.discount || 0)
   , 0);
+
   const totalMonth = monthSales.reduce((s,x) => s + Number(x.total || 0), 0);
 
   return `
@@ -835,7 +840,7 @@ function settingsHtml(){
         <input id="newUser" value="${data.user.username}">
 
         <label>Password نوێ</label>
-        <input id="newPass" placeholder="بەتاڵی بهێڵە ئەگەر ناگۆڕیت">
+        <input id="newPass" type="password" placeholder="بەتاڵی بهێڵە ئەگەر ناگۆڕیت">
 
         <button class="green" style="margin-top:12px" onclick="saveSettings()">هەڵگرتن</button>
       </div>
@@ -889,7 +894,7 @@ function importBackup(e){
       save();
       showMsg("Backup گەڕایەوە");
       render();
-    } catch {
+    }catch{
       showMsg("فایل هەڵەیە");
     }
   };
