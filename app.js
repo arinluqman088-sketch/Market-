@@ -1,18 +1,18 @@
-const ACCOUNTS_LS = "AR_GROUP_POS_ACCOUNTS_V3";
-const DATA_PREFIX = "AR_GROUP_POS_DATA_V7_";
+const ACCOUNTS_LS = "AR_GROUP_POS_ACCOUNTS_V4";
+const DATA_PREFIX = "AR_GROUP_POS_DATA_V8_";
 
 const defaultAccounts = [
   {
     key: "market1",
     username: "market1",
-    password: "1111",
+    password: "1122",
     shopName: "Market 1 POS",
     phone: "0770 000 0001"
   },
   {
     key: "market2",
     username: "market2",
-    password: "2222",
+    password: "1200",
     shopName: "Market 2 POS",
     phone: "0770 000 0002"
   }
@@ -49,7 +49,7 @@ function defaultDataForAccount(account){
   };
 }
 
-let accounts = loadAccounts();
+let accounts = clone(defaultAccounts);
 let currentAccount = null;
 let data = null;
 
@@ -59,15 +59,6 @@ let state = {
   logged: false,
   editingProduct: null
 };
-
-function loadAccounts(){
-  localStorage.setItem(ACCOUNTS_LS, JSON.stringify(defaultAccounts));
-  return clone(defaultAccounts);
-}
-
-function saveAccounts(){
-  localStorage.setItem(ACCOUNTS_LS, JSON.stringify(accounts));
-}
 
 function dataKey(){
   return DATA_PREFIX + currentAccount.key;
@@ -141,11 +132,6 @@ function render(){
           <input id="loginPass" type="password" value="" placeholder="Password" autocomplete="current-password">
 
           <button onclick="login()" style="margin-top:14px">Login</button>
-
-          <div class="login-info">
-            <div><b>Market 1:</b> market1 / 1111</div>
-            <div><b>Market 2:</b> market2 / 2222</div>
-          </div>
         </div>
       </div>
     `;
