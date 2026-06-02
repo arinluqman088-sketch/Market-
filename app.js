@@ -1,6 +1,5 @@
-const ACCOUNTS_LS = "AR_GROUP_POS_ACCOUNTS_V1";
-const DATA_PREFIX = "AR_GROUP_POS_DATA_V5_";
-
+const ACCOUNTS_LS = "AR_GROUP_POS_ACCOUNTS_V2";
+const DATA_PREFIX = "AR_GROUP_POS_DATA_V6_";
 const defaultAccounts = [
   {
     key: "market1",
