@@ -1,4 +1,22 @@
-const LS = "MARKET_POS_PRO_DATA_V4";
+const ACCOUNTS_LS = "AR_GROUP_POS_ACCOUNTS_V1";
+const DATA_PREFIX = "AR_GROUP_POS_DATA_V5_";
+
+const defaultAccounts = [
+  {
+    key: "market1",
+    username: "market cashier ",
+    password: "1212",
+    shopName: "Market 1 POS",
+    phone: "0770 000 0001"
+  },
+  {
+    key: "market2",
+    username: "market cashier 2",
+    password: "3132",
+    shopName: "Market 2 POS",
+    phone: "0770 000 0002"
+  }
+];
 
 function uid(){
   if(window.crypto && typeof window.crypto.randomUUID === "function"){
@@ -12,52 +30,113 @@ function clone(obj){
   return JSON.parse(JSON.stringify(obj));
 }
 
-const defaultData = {
-  user: {
-    username: "admin",
-    password: "1234",
-    shopName: "AR Group POS",
-    phone: "0770 000 0000"
-  },
-  products: [
-    {id: uid(), barcode:"1001", name:"نان", category:"خواردن", price:500, cost:350, stock:80, minStock:10},
-    {id: uid(), barcode:"1002", name:"شیر", category:"خواردن", price:1000, cost:750, stock:40, minStock:8},
-    {id: uid(), barcode:"1003", name:"چای", category:"خواردن", price:1500, cost:1000, stock:30, minStock:5},
-    {id: uid(), barcode:"1004", name:"ئاو", category:"خواردن", price:250, cost:150, stock:120, minStock:20}
-  ],
-  customers: [],
-  sales: []
+function defaultDataForAccount(account){
+  return {
+    user: {
+      username: account.username,
+      password: account.password,
+      shopName: account.shopName,
+      phone: account.phone
+    },
+    products: [
+      {id: uid(), barcode:"1001", name:"نان", category:"خواردن", price:500, cost:350, stock:80, minStock:10},
+      {id: uid(), barcode:"1002", name:"شیر", category:"خواردن", price:1000, cost:750, stock:40, minStock:8},
+      {id: uid(), barcode:"1003", name:"چای", category:"خواردن", price:1500, cost:1000, stock:30, minStock:5},
+      {id: uid(), barcode:"1004", name:"ئاو", category:"خواردن", price:250, cost:150, stock:120, minStock:20}
+    ],
+    customers: [],
+    sales: []
+  };
+}
+
+let accounts = loadAccounts();
+let currentAccount = null;
+let data = null;
+
+let state = {
+  page: "dashboard",
+  cart: [],
+  logged: false,
+  editingProduct: null
 };
 
-let data = loadData();
-let state = { page: "dashboard", cart: [], logged: false, editingProduct: null };
+function loadAccounts(){
+  const raw = localStorage.getItem(ACCOUNTS_LS);
 
-function loadData(){
-  const raw = localStorage.getItem(LS);
   if(!raw){
-    localStorage.setItem(LS, JSON.stringify(defaultData));
-    return clone(defaultData);
+    localStorage.setItem(ACCOUNTS_LS, JSON.stringify(defaultAccounts));
+    return clone(defaultAccounts);
   }
 
   try{
     const parsed = JSON.parse(raw);
-    parsed.user = parsed.user || defaultData.user;
+    if(!Array.isArray(parsed) || parsed.length < 2){
+      localStorage.setItem(ACCOUNTS_LS, JSON.stringify(defaultAccounts));
+      return clone(defaultAccounts);
+    }
+    return parsed;
+  }catch{
+    localStorage.setItem(ACCOUNTS_LS, JSON.stringify(defaultAccounts));
+    return clone(defaultAccounts);
+  }
+}
+
+function saveAccounts(){
+  localStorage.setItem(ACCOUNTS_LS, JSON.stringify(accounts));
+}
+
+function dataKey(){
+  return DATA_PREFIX + currentAccount.key;
+}
+
+function loadData(){
+  const raw = localStorage.getItem(dataKey());
+
+  if(!raw){
+    const fresh = defaultDataForAccount(currentAccount);
+    localStorage.setItem(dataKey(), JSON.stringify(fresh));
+    return clone(fresh);
+  }
+
+  try{
+    const parsed = JSON.parse(raw);
+    parsed.user = parsed.user || defaultDataForAccount(currentAccount).user;
     parsed.products = parsed.products || [];
     parsed.customers = parsed.customers || [];
     parsed.sales = parsed.sales || [];
     return parsed;
   }catch{
-    localStorage.setItem(LS, JSON.stringify(defaultData));
-    return clone(defaultData);
+    const fresh = defaultDataForAccount(currentAccount);
+    localStorage.setItem(dataKey(), JSON.stringify(fresh));
+    return clone(fresh);
   }
 }
 
-function save(){ localStorage.setItem(LS, JSON.stringify(data)); }
-function byId(id){ return document.getElementById(id); }
-function money(n){ return Number(n || 0).toLocaleString() + " IQD"; }
-function today(){ return new Date().toISOString().slice(0, 10); }
-function month(){ return new Date().toISOString().slice(0, 7); }
-function showMsg(text){ alert(text); }
+function save(){
+  if(currentAccount && data){
+    localStorage.setItem(dataKey(), JSON.stringify(data));
+  }
+}
+
+function byId(id){
+  return document.getElementById(id);
+}
+
+function money(n){
+  return Number(n || 0).toLocaleString() + " IQD";
+}
+
+function today(){
+  return new Date().toISOString().slice(0, 10);
+}
+
+function month(){
+  return new Date().toISOString().slice(0, 7);
+}
+
+function showMsg(text){
+  alert(text);
+}
 
 function render(){
   const app = byId("app");
@@ -72,12 +151,17 @@ function render(){
           <p class="muted">سیستەمی کاشێری مارکێت و دوکان</p>
 
           <label>Username</label>
-          <input id="loginUser" value="admin" autocomplete="username">
+          <input id="loginUser" placeholder="Username" autocomplete="username">
 
           <label>Password</label>
           <input id="loginPass" type="password" value="" placeholder="Password" autocomplete="current-password">
 
           <button onclick="login()" style="margin-top:14px">Login</button>
+
+          <div class="login-info">
+            <div><b>Market 1:</b> market1 / 1111</div>
+            <div><b>Market 2:</b> market2 / 2222</div>
+          </div>
         </div>
       </div>
     `;
@@ -93,6 +177,7 @@ function render(){
         </div>
 
         <div class="actions">
+          <span class="badge">${currentAccount.username}</span>
           <span class="badge">${new Date().toLocaleDateString()}</span>
           <button class="secondary" onclick="logout()">Logout</button>
         </div>
@@ -132,16 +217,35 @@ function login(){
   const u = byId("loginUser").value.trim();
   const p = byId("loginPass").value;
 
-  if(u === data.user.username && p === data.user.password){
-    state.logged = true;
-    render();
-  }else{
+  const found = accounts.find(acc => acc.username === u && acc.password === p);
+
+  if(!found){
     showMsg("Username یان Password هەڵەیە");
+    return;
   }
+
+  currentAccount = found;
+  data = loadData();
+
+  data.user.username = currentAccount.username;
+  data.user.password = currentAccount.password;
+  data.user.shopName = currentAccount.shopName;
+  data.user.phone = currentAccount.phone;
+  save();
+
+  state.logged = true;
+  state.page = "dashboard";
+  state.cart = [];
+  state.editingProduct = null;
+
+  render();
 }
 
 function logout(){
   state.logged = false;
+  currentAccount = null;
+  data = null;
+  state.cart = [];
   render();
 }
 
@@ -821,7 +925,7 @@ function settingsHtml(){
         <input id="shopPhone" value="${data.user.phone}">
 
         <label>Username</label>
-        <input id="newUser" value="${data.user.username}">
+        <input id="newUser" value="${currentAccount.username}">
 
         <label>Password نوێ</label>
         <input id="newPass" type="password" placeholder="بەتاڵی بهێڵە ئەگەر ناگۆڕیت">
@@ -838,22 +942,41 @@ function settingsHtml(){
           <input id="importFile" type="file" accept=".json" class="hidden" onchange="importBackup(event)">
         </div>
 
-        <p class="muted">بۆ مارکێت گرنگە هەفتانە Backup بکەیت.</p>
-        <button class="red" onclick="resetAll()">Reset System</button>
+        <p class="muted">Backup تەنها بۆ ئەم مارکێتەیە، مارکێتی تر کاری پێ ناکرێت.</p>
+        <button class="red" onclick="resetThisMarket()">Reset ئەم مارکێتە</button>
       </div>
     </div>
   `;
 }
 
 function saveSettings(){
-  data.user.shopName = byId("shopName").value.trim() || "AR Group POS";
-  data.user.phone = byId("shopPhone").value.trim();
-  data.user.username = byId("newUser").value.trim() || "admin";
+  const newShopName = byId("shopName").value.trim() || "AR Group POS";
+  const newPhone = byId("shopPhone").value.trim();
+  const newUsername = byId("newUser").value.trim() || currentAccount.username;
+  const newPassword = byId("newPass").value;
 
-  const np = byId("newPass").value;
-  if(np) data.user.password = np;
+  const duplicated = accounts.find(acc => acc.username === newUsername && acc.key !== currentAccount.key);
+  if(duplicated){
+    showMsg("ئەم Username ـە پێشتر بۆ مارکێتێکی تر بەکارهاتووە");
+    return;
+  }
 
+  currentAccount.shopName = newShopName;
+  currentAccount.phone = newPhone;
+  currentAccount.username = newUsername;
+
+  if(newPassword){
+    currentAccount.password = newPassword;
+  }
+
+  data.user.shopName = currentAccount.shopName;
+  data.user.phone = currentAccount.phone;
+  data.user.username = currentAccount.username;
+  data.user.password = currentAccount.password;
+
+  saveAccounts();
   save();
+
   showMsg("ڕێکخستنەکان هەڵگیران");
   render();
 }
@@ -862,7 +985,7 @@ function exportBackup(){
   const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "market-pos-backup.json";
+  a.download = currentAccount.key + "-backup.json";
   a.click();
 }
 
@@ -875,6 +998,14 @@ function importBackup(e){
   r.onload = () => {
     try{
       data = JSON.parse(r.result);
+      data.user = data.user || {};
+      data.user.shopName = currentAccount.shopName;
+      data.user.phone = currentAccount.phone;
+      data.user.username = currentAccount.username;
+      data.user.password = currentAccount.password;
+      data.products = data.products || [];
+      data.customers = data.customers || [];
+      data.sales = data.sales || [];
       save();
       showMsg("Backup گەڕایەوە");
       render();
@@ -886,9 +1017,9 @@ function importBackup(e){
   r.readAsText(f);
 }
 
-function resetAll(){
-  if(confirm("دڵنیایت هەموو داتا بسڕدرێتەوە؟")){
-    localStorage.removeItem(LS);
+function resetThisMarket(){
+  if(confirm("دڵنیایت هەموو داتای ئەم مارکێتە بسڕدرێتەوە؟")){
+    localStorage.removeItem(dataKey());
     data = loadData();
     state.cart = [];
     state.page = "dashboard";
