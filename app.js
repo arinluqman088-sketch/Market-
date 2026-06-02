@@ -4,15 +4,15 @@ const DATA_PREFIX = "AR_GROUP_POS_DATA_V5_";
 const defaultAccounts = [
   {
     key: "market1",
-    username: "market cashier ",
-    password: "1212",
+    username: "market1",
+    password: "1111",
     shopName: "Market 1 POS",
     phone: "0770 000 0001"
   },
   {
     key: "market2",
-    username: "market cashier 2",
-    password: "3132",
+    username: "market2",
+    password: "2222",
     shopName: "Market 2 POS",
     phone: "0770 000 0002"
   }
