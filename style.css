@@ -17,7 +17,7 @@ body{
   width:100%;
   min-height:100vh;
   overflow-x:hidden;
-  font-family: Arial, sans-serif;
+  font-family:Arial, sans-serif;
   background:
     radial-gradient(circle at top left, #6d28d9 0, transparent 35%),
     radial-gradient(circle at top right, #0ea5e9 0, transparent 30%),
@@ -25,7 +25,6 @@ body{
   color:#f8fafc;
 }
 
-/* ئەمە گرنگترین بەشە بۆ نەکردنی Zoom لە iPhone */
 input,
 select,
 textarea,
@@ -47,7 +46,6 @@ button{
 }
 
 button:hover{
-  transform:translateY(-2px);
   opacity:.95;
 }
 
@@ -109,6 +107,7 @@ h1,
 h2,
 h3{
   margin-top:0;
+  line-height:1.35;
 }
 
 .login-page{
@@ -116,7 +115,7 @@ h3{
   display:flex;
   align-items:center;
   justify-content:center;
-  padding:20px;
+  padding:16px;
 }
 
 .logo-box{
@@ -138,6 +137,10 @@ h3{
   text-align:center;
 }
 
+.login h1{
+  font-size:28px;
+}
+
 .login-info{
   margin-top:15px;
   padding:12px;
@@ -148,8 +151,10 @@ h3{
 }
 
 .app{
-  padding:22px;
-  max-width:100%;
+  width:100%;
+  max-width:1500px;
+  margin:0 auto;
+  padding:18px;
   overflow-x:hidden;
 }
 
@@ -158,16 +163,16 @@ h3{
   align-items:center;
   justify-content:space-between;
   gap:14px;
-  padding:18px 22px;
-  border-radius:24px;
+  padding:16px 18px;
+  border-radius:22px;
   background:rgba(255,255,255,.08);
   border:1px solid rgba(255,255,255,.12);
   backdrop-filter:blur(18px);
-  margin-bottom:18px;
+  margin-bottom:16px;
 }
 
 .brand{
-  font-size:24px;
+  font-size:23px;
   font-weight:900;
 }
 
@@ -184,15 +189,16 @@ h3{
 
 .layout{
   display:grid;
-  grid-template-columns:240px 1fr;
-  gap:18px;
+  grid-template-columns:240px minmax(0,1fr);
+  gap:16px;
+  width:100%;
   max-width:100%;
 }
 
 .sidebar{
   background:rgba(255,255,255,.07);
   border:1px solid rgba(255,255,255,.10);
-  border-radius:24px;
+  border-radius:22px;
   padding:14px;
   height:fit-content;
   backdrop-filter:blur(18px);
@@ -216,24 +222,27 @@ h3{
 
 .content{
   min-width:0;
+  width:100%;
   max-width:100%;
 }
 
 .card{
   background:rgba(15,23,42,.78);
   border:1px solid rgba(255,255,255,.12);
-  border-radius:24px;
-  padding:20px;
+  border-radius:22px;
+  padding:18px;
   box-shadow:0 20px 60px rgba(0,0,0,.28);
   backdrop-filter:blur(18px);
+  width:100%;
   max-width:100%;
+  min-width:0;
 }
 
 .hero{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  gap:20px;
+  gap:16px;
   margin-bottom:14px;
   background:
     linear-gradient(135deg, rgba(124,58,237,.35), rgba(14,165,233,.18)),
@@ -243,25 +252,29 @@ h3{
 .grid{
   display:grid;
   gap:14px;
+  width:100%;
+  max-width:100%;
+  min-width:0;
 }
 
 .grid.two{
-  grid-template-columns:1fr 1fr;
+  grid-template-columns:repeat(2,minmax(0,1fr));
 }
 
 .grid.three{
-  grid-template-columns:repeat(3,1fr);
+  grid-template-columns:repeat(3,minmax(0,1fr));
 }
 
 .grid.four{
-  grid-template-columns:repeat(4,1fr);
+  grid-template-columns:repeat(4,minmax(0,1fr));
 }
 
 .row{
   display:grid;
-  grid-template-columns:1fr auto;
+  grid-template-columns:minmax(0,1fr) auto;
   gap:12px;
   align-items:start;
+  width:100%;
 }
 
 .muted{
@@ -273,13 +286,15 @@ h3{
   font-weight:900;
   margin-top:8px;
   color:#fff;
+  word-break:break-word;
 }
 
 .big-number{
-  font-size:38px;
+  font-size:36px;
   font-weight:900;
   color:#fbbf24;
-  margin:20px 0;
+  margin:18px 0;
+  word-break:break-word;
 }
 
 .stat{
@@ -314,7 +329,8 @@ h3{
 }
 
 .tablewrap{
-  overflow:auto;
+  overflow-x:auto;
+  overflow-y:hidden;
   border-radius:16px;
   max-width:100%;
   -webkit-overflow-scrolling:touch;
@@ -323,12 +339,12 @@ h3{
 table{
   width:100%;
   border-collapse:collapse;
-  min-width:600px;
+  min-width:520px;
 }
 
 th,
 td{
-  padding:13px;
+  padding:12px;
   border-bottom:1px solid rgba(255,255,255,.08);
   text-align:right;
   white-space:nowrap;
@@ -348,7 +364,6 @@ td{
   display:none !important;
 }
 
-/* Search option بۆ بەشی بارکۆد */
 .searchBox{
   position:relative;
   width:100%;
@@ -429,6 +444,16 @@ td{
   border-bottom:1px dashed #999;
 }
 
+@media(max-width:1200px){
+  .grid.four{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  .grid.three{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
 @media(max-width:900px){
   .app{
     padding:12px;
@@ -440,7 +465,14 @@ td{
 
   .sidebar{
     display:grid;
-    grid-template-columns:1fr 1fr;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:10px;
+  }
+
+  .navbtn{
+    margin-bottom:0;
+    text-align:center;
+    padding:12px 8px;
   }
 
   .grid.two,
@@ -480,17 +512,54 @@ td{
   }
 }
 
-@media(max-width:480px){
-  .login-page{
-    padding:12px;
+@media(max-width:600px){
+  body{
+    background:
+      radial-gradient(circle at top left, #6d28d9 0, transparent 42%),
+      linear-gradient(135deg, #070718, #0f172a 55%, #111827);
   }
 
-  .login{
-    width:100%;
+  .app{
+    padding:10px;
+  }
+
+  .topbar{
+    padding:14px;
+    border-radius:18px;
   }
 
   .sidebar{
-    grid-template-columns:1fr;
+    grid-template-columns:1fr 1fr;
+    padding:10px;
+    border-radius:18px;
+  }
+
+  .navbtn{
+    font-size:15px !important;
+    min-height:48px;
+  }
+
+  .card{
+    border-radius:18px;
+    padding:14px;
+  }
+
+  h1{
+    font-size:26px;
+  }
+
+  h2{
+    font-size:24px;
+  }
+
+  .login h1{
+    font-size:23px;
+  }
+
+  .logo-box{
+    width:60px;
+    height:60px;
+    font-size:28px;
   }
 
   button{
@@ -506,7 +575,40 @@ td{
   }
 
   table{
-    min-width:560px;
+    min-width:480px;
+  }
+
+  th,
+  td{
+    padding:10px;
+    font-size:14px;
+  }
+
+  .scan-option{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+}
+
+@media(max-width:390px){
+  .sidebar{
+    grid-template-columns:1fr;
+  }
+
+  .navbtn{
+    text-align:center;
+  }
+
+  .kpi{
+    font-size:22px;
+  }
+
+  .big-number{
+    font-size:26px;
+  }
+
+  table{
+    min-width:440px;
   }
 }
 
