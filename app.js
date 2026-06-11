@@ -125,8 +125,8 @@ function render(){
           <h1>پەرەی پێدراوە لە لایەن گروپی AR group</h1>
           <p class="muted">سیستەمی کاشێری مارکێت و دوکان</p>
 
-          <label>Username</label>
-          <input id="loginUser" placeholder="Username" autocomplete="username">
+          <label>Email</label>
+          <input id="loginUser" placeholder="Email" autocomplete="email">
 
           <label>Password</label>
           <input id="loginPass" type="password" value="" placeholder="Password" autocomplete="current-password">
@@ -183,39 +183,64 @@ function go(p){
   render();
 }
 
-function login(){
-  const u = byId("loginUser").value.trim().toLowerCase();
+async function login(){
+  const email = byId("loginUser").value.trim().toLowerCase();
   const p = byId("loginPass").value.trim();
 
-  const found = defaultAccounts.find(acc =>
-    acc.username.toLowerCase() === u &&
-    acc.password === p
-  );
-
-  if(!found){
-    showMsg("Username یان Password هەڵەیە");
+  if(!window.AR_GROUP_CLOUD){
+    showMsg("Firebase هێشتا ئامادە نیە، پەڕەکە refresh بکە");
     return;
   }
 
-  currentAccount = clone(found);
-  data = loadData();
+  try{
+    const cloudUser = await window.AR_GROUP_CLOUD.login(email, p);
 
-  data.user.username = currentAccount.username;
-  data.user.password = currentAccount.password;
-  data.user.shopName = currentAccount.shopName;
-  data.user.phone = currentAccount.phone;
+    const found = defaultAccounts.find(acc => acc.key === cloudUser.marketId);
 
-  save();
+    if(!found){
+      showMsg("ئەم user ـە market ـی دروستی نییە");
+      return;
+    }
 
-  state.logged = true;
-  state.page = "dashboard";
-  state.cart = [];
-  state.editingProduct = null;
+    currentAccount = clone(found);
+    currentAccount.username = cloudUser.email;
+    currentAccount.password = "";
+    currentAccount.shopName =
+      cloudUser.shopName && cloudUser.shopName !== cloudUser.marketId
+        ? cloudUser.shopName
+        : found.shopName;
+    currentAccount.phone = cloudUser.phone || found.phone;
 
-  render();
+    data = loadData();
+
+    data.user.username = currentAccount.username;
+    data.user.password = "";
+    data.user.shopName = currentAccount.shopName;
+    data.user.phone = currentAccount.phone;
+
+    save();
+
+    state.logged = true;
+    state.page = "dashboard";
+    state.cart = [];
+    state.editingProduct = null;
+
+    render();
+  }catch(err){
+    console.log(err);
+    showMsg("Email یان Password هەڵەیە، یان ئەم user ـە ڕێگەی market نییە");
+  }
 }
 
-function logout(){
+async function logout(){
+  if(window.AR_GROUP_CLOUD){
+    try{
+      await window.AR_GROUP_CLOUD.logout();
+    }catch(err){
+      console.log(err);
+    }
+  }
+
   state.logged = false;
   currentAccount = null;
   data = null;
@@ -342,7 +367,7 @@ function posHtml(){
 
         <label>شێوازی پارەدان</label>
         <select id="payType" onchange="toggleCustomer()">
-          <option value="cash">Cash</option>
+          <option value="cash">Cash / نەقد</option>
           <option value="debt">Debt / قەرز</option>
         </select>
 
@@ -898,8 +923,7 @@ function settingsHtml(){
         <label>مۆبایل</label>
         <input id="shopPhone" value="${data.user.phone}">
 
-        <label>Password نوێ</label>
-        <input id="newPass" type="password" placeholder="بەتاڵی بهێڵە ئەگەر ناگۆڕیت">
+        <p class="muted">Password لە Firebase Authentication دەگۆڕدرێت.</p>
 
         <button class="green" style="margin-top:12px" onclick="saveSettings()">هەڵگرتن</button>
       </div>
@@ -923,19 +947,14 @@ function settingsHtml(){
 function saveSettings(){
   const newShopName = byId("shopName").value.trim() || currentAccount.shopName;
   const newPhone = byId("shopPhone").value.trim();
-  const newPassword = byId("newPass").value.trim();
 
   currentAccount.shopName = newShopName;
   currentAccount.phone = newPhone;
 
-  if(newPassword){
-    currentAccount.password = newPassword;
-  }
-
   data.user.shopName = currentAccount.shopName;
   data.user.phone = currentAccount.phone;
   data.user.username = currentAccount.username;
-  data.user.password = currentAccount.password;
+  data.user.password = "";
 
   save();
   showMsg("ڕێکخستنەکان هەڵگیران");
@@ -963,7 +982,7 @@ function importBackup(e){
       data.user.shopName = currentAccount.shopName;
       data.user.phone = currentAccount.phone;
       data.user.username = currentAccount.username;
-      data.user.password = currentAccount.password;
+      data.user.password = "";
       data.products = data.products || [];
       data.customers = data.customers || [];
       data.sales = data.sales || [];
