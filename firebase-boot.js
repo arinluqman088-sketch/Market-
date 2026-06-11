@@ -1,6 +1,6 @@
-const LS = "CAFE_POS_PRO_DATA_V1";
-const CLOUD_COLLECTION = "pos_systems";
-const CLOUD_DOC = "main";
+const DATA_PREFIX = "AR_GROUP_POS_DATA_V8_";
+const CLOUD_COLLECTION = "market_pos_data";
+const KNOWN_MARKETS = ["market1", "market2"];
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
 import {
@@ -8,6 +8,7 @@ import {
   doc,
   getDoc,
   setDoc,
+  deleteDoc,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
@@ -22,25 +23,43 @@ const firebaseConfig = {
 
 const originalSetItem = localStorage.setItem.bind(localStorage);
 const originalGetItem = localStorage.getItem.bind(localStorage);
-
-let cloudReady = false;
-let saveTimer = null;
+const originalRemoveItem = localStorage.removeItem.bind(localStorage);
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const cloudRef = doc(db, CLOUD_COLLECTION, CLOUD_DOC);
+
+let cloudReady = false;
+const saveTimers = {};
+
+function isMarketDataKey(key) {
+  return typeof key === "string" && key.startsWith(DATA_PREFIX);
+}
+
+function marketIdFromKey(key) {
+  return key.replace(DATA_PREFIX, "");
+}
+
+function keyFromMarketId(marketId) {
+  return DATA_PREFIX + marketId;
+}
+
+function marketDocRef(marketId) {
+  return doc(db, CLOUD_COLLECTION, marketId);
+}
 
 function loadApp() {
   const script = document.createElement("script");
-  script.src = "app.js?v=5";
+  script.src = "app.js?v=6";
   document.body.appendChild(script);
 }
 
-async function saveCloud(raw) {
-  if (!cloudReady || !raw) return;
+async function saveMarketToCloud(key, raw) {
+  if (!cloudReady || !isMarketDataKey(key) || !raw) return;
 
   try {
-    await setDoc(cloudRef, {
+    const marketId = marketIdFromKey(key);
+    await setDoc(marketDocRef(marketId), {
+      localStorageKey: key,
       data: JSON.parse(raw),
       updatedAt: serverTimestamp()
     }, { merge: true });
@@ -49,35 +68,59 @@ async function saveCloud(raw) {
   }
 }
 
+function scheduleCloudSave(key, raw) {
+  if (!isMarketDataKey(key)) return;
+
+  clearTimeout(saveTimers[key]);
+  saveTimers[key] = setTimeout(() => saveMarketToCloud(key, raw), 700);
+}
+
 localStorage.setItem = function(key, value) {
   originalSetItem(key, value);
 
-  if (key === LS) {
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => saveCloud(value), 700);
+  if (isMarketDataKey(key)) {
+    scheduleCloudSave(key, value);
   }
 };
 
-async function boot() {
-  try {
-    const snap = await getDoc(cloudRef);
+localStorage.removeItem = function(key) {
+  originalRemoveItem(key);
 
-    if (snap.exists() && snap.data().data) {
-      originalSetItem(LS, JSON.stringify(snap.data().data));
-    } else {
-      const localData = originalGetItem(LS);
-      if (localData) {
-        await setDoc(cloudRef, {
-          data: JSON.parse(localData),
-          updatedAt: serverTimestamp()
-        }, { merge: true });
-      }
-    }
-  } catch (err) {
-    console.log("Firebase load error:", err);
+  if (cloudReady && isMarketDataKey(key)) {
+    const marketId = marketIdFromKey(key);
+    deleteDoc(marketDocRef(marketId)).catch(err => {
+      console.log("Firebase delete error:", err);
+    });
   }
+};
 
+async function loadKnownMarketsFromCloud() {
+  for (const marketId of KNOWN_MARKETS) {
+    try {
+      const snap = await getDoc(marketDocRef(marketId));
+      if (snap.exists() && snap.data()?.data) {
+        originalSetItem(keyFromMarketId(marketId), JSON.stringify(snap.data().data));
+      }
+    } catch (err) {
+      console.log("Firebase load error:", marketId, err);
+    }
+  }
+}
+
+async function uploadExistingLocalMarkets() {
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (!isMarketDataKey(key)) continue;
+
+    const raw = originalGetItem(key);
+    if (raw) await saveMarketToCloud(key, raw);
+  }
+}
+
+async function boot() {
+  await loadKnownMarketsFromCloud();
   cloudReady = true;
+  await uploadExistingLocalMarkets();
   loadApp();
 }
 
