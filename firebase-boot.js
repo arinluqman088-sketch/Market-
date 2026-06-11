@@ -1,8 +1,15 @@
 const DATA_PREFIX = "AR_GROUP_POS_DATA_V8_";
 const CLOUD_COLLECTION = "market_pos_data";
-const KNOWN_MARKETS = ["market1", "market2"];
+const ACCESS_COLLECTION = "market_access";
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  signOut
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
+
 import {
   getFirestore,
   doc,
@@ -26,9 +33,11 @@ const originalGetItem = localStorage.getItem.bind(localStorage);
 const originalRemoveItem = localStorage.removeItem.bind(localStorage);
 
 const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 const db = getFirestore(app);
 
 let cloudReady = false;
+let activeMarketId = null;
 const saveTimers = {};
 
 function isMarketDataKey(key) {
@@ -47,17 +56,32 @@ function marketDocRef(marketId) {
   return doc(db, CLOUD_COLLECTION, marketId);
 }
 
+function accessDocRef(uid) {
+  return doc(db, ACCESS_COLLECTION, uid);
+}
+
 function loadApp() {
   const script = document.createElement("script");
-  script.src = "app.js?v=6";
+  script.src = "app.js?v=7";
   document.body.appendChild(script);
 }
 
+async function loadMarketFromCloud(marketId) {
+  const snap = await getDoc(marketDocRef(marketId));
+
+  if (snap.exists() && snap.data()?.data) {
+    originalSetItem(keyFromMarketId(marketId), JSON.stringify(snap.data().data));
+  }
+}
+
 async function saveMarketToCloud(key, raw) {
-  if (!cloudReady || !isMarketDataKey(key) || !raw) return;
+  if (!cloudReady || !activeMarketId || !isMarketDataKey(key) || !raw) return;
+
+  const marketId = marketIdFromKey(key);
+
+  if (marketId !== activeMarketId) return;
 
   try {
-    const marketId = marketIdFromKey(key);
     await setDoc(marketDocRef(marketId), {
       localStorageKey: key,
       data: JSON.parse(raw),
@@ -86,42 +110,60 @@ localStorage.setItem = function(key, value) {
 localStorage.removeItem = function(key) {
   originalRemoveItem(key);
 
-  if (cloudReady && isMarketDataKey(key)) {
+  if (cloudReady && activeMarketId && isMarketDataKey(key)) {
     const marketId = marketIdFromKey(key);
-    deleteDoc(marketDocRef(marketId)).catch(err => {
-      console.log("Firebase delete error:", err);
-    });
+
+    if (marketId === activeMarketId) {
+      deleteDoc(marketDocRef(marketId)).catch(err => {
+        console.log("Firebase delete error:", err);
+      });
+    }
   }
 };
 
-async function loadKnownMarketsFromCloud() {
-  for (const marketId of KNOWN_MARKETS) {
-    try {
-      const snap = await getDoc(marketDocRef(marketId));
-      if (snap.exists() && snap.data()?.data) {
-        originalSetItem(keyFromMarketId(marketId), JSON.stringify(snap.data().data));
-      }
-    } catch (err) {
-      console.log("Firebase load error:", marketId, err);
-    }
+async function cloudLogin(email, password) {
+  const result = await signInWithEmailAndPassword(auth, email, password);
+  const uid = result.user.uid;
+
+  const accessSnap = await getDoc(accessDocRef(uid));
+
+  if (!accessSnap.exists()) {
+    await signOut(auth);
+    throw new Error("No market access found for this user");
   }
-}
 
-async function uploadExistingLocalMarkets() {
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (!isMarketDataKey(key)) continue;
+  const access = accessSnap.data();
 
-    const raw = originalGetItem(key);
-    if (raw) await saveMarketToCloud(key, raw);
+  if (!access.marketId) {
+    await signOut(auth);
+    throw new Error("marketId is missing");
   }
-}
 
-async function boot() {
-  await loadKnownMarketsFromCloud();
+  activeMarketId = access.marketId;
   cloudReady = true;
-  await uploadExistingLocalMarkets();
-  loadApp();
+
+  await loadMarketFromCloud(activeMarketId);
+
+  return {
+    uid,
+    email: result.user.email,
+    marketId: access.marketId,
+    role: access.role || "owner",
+    shopName: access.shopName || access.marketId,
+    phone: access.phone || ""
+  };
 }
 
-boot();
+async function cloudLogout() {
+  cloudReady = false;
+  activeMarketId = null;
+  await signOut(auth);
+}
+
+window.AR_GROUP_CLOUD = {
+  login: cloudLogin,
+  logout: cloudLogout,
+  getActiveMarketId: () => activeMarketId
+};
+
+loadApp();
