@@ -62,7 +62,7 @@ function accessDocRef(uid) {
 
 function loadApp() {
   const script = document.createElement("script");
-script.src = "app.js?v=9";
+script.src = "app.js?v=11";
   document.body.appendChild(script);
 }
 
