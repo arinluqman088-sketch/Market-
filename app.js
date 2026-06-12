@@ -89,7 +89,17 @@ function loadData(){
 
 function save(){
   if(currentAccount && data){
-    localStorage.setItem(dataKey(), JSON.stringify(data));
+    const key = dataKey();
+    const raw = JSON.stringify(data);
+
+    localStorage.setItem(key, raw);
+
+    if(window.AR_GROUP_CLOUD && typeof window.AR_GROUP_CLOUD.saveRaw === "function"){
+      window.AR_GROUP_CLOUD.saveRaw(key, raw).catch(err => {
+        console.log("Direct Firebase save error:", err);
+        showMsg("Firebase save error: " + (err.code || err.message || "unknown"));
+      });
+    }
   }
 }
 
