@@ -227,9 +227,9 @@ async function login(){
 
     render();
   }catch(err){
-    console.log(err);
-    showMsg("Email یان Password هەڵەیە، یان ئەم user ـە ڕێگەی market نییە");
-  }
+  console.log(err);
+  showMsg("Firebase error: " + (err.code || err.message || "unknown error"));
+}
 }
 
 async function logout(){
