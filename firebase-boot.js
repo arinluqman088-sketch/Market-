@@ -163,7 +163,8 @@ async function cloudLogout() {
 window.AR_GROUP_CLOUD = {
   login: cloudLogin,
   logout: cloudLogout,
-  getActiveMarketId: () => activeMarketId
+  getActiveMarketId: () => activeMarketId,
+  saveRaw: saveMarketToCloud
 };
 
 loadApp();
